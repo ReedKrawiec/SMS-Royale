@@ -1,0 +1,165 @@
+<html>
+
+<head>
+  <title>SMS Royal</title>
+  <!-- Compiled and minified CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+  <!-- Compiled and minified JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="A front-end template that helps you build fast, modern mobile web apps.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>SMS Royale</title>
+
+  <link rel="shortcut icon" href="images/favicon.png">
+
+
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.teal-red.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="material.css">
+  <style>
+    html {
+      font-family: Arial;
+      font-size: 16px;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      transform: scale(2.5);
+    }
+
+    .button {
+      border: solid 2px black;
+      padding: 30px;
+      font-size: 1.5em;
+      transition: all .5s;
+      text-align: center;
+    }
+
+    .button:hover {
+      padding: 40px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="winscreen" style="display:none">
+    <h2 class="spin"><span id="playerName"></span> wins</h2>
+  </div>
+  <div id="creategame" style="display:initial">
+    Create Game
+    <div id="new" class="button">
+      NEW GAME
+    </div>
+  </div>
+  <div id="queuescreen" style="display:none">
+    TEXT THE NUMBER: <span id="id"></span>
+    <div id="start" class="button">
+      START
+    </div>
+    to (732) 589-7599
+    <ul id="playerList">
+    </ul>
+  </div>
+  <div id="gamescreen" style="display:none">
+    <div class="button"><span id="timer"></span></p>
+      <p>TYPE THE WORD <span id="currentWord"></span></p>
+      <p>BUT REPLACE <span id="m1"></span> with <span id="m2"></span></p>
+      <ul id="responses">
+
+      </ul>
+    </div>
+    <script>
+      let new_button = document.querySelector("#new");
+      let rounds = 0;
+      let players_display = [];
+      new_button.addEventListener("click", async function (e) {
+        let res = await fetch("./new");
+        let res_json = await res.json();
+        let gmState;
+        let timer = 20;
+        let loop = setInterval(async function () {
+
+          let gamestate = await fetch(
+            `./gameState?gameid=${res_json.id}&secret=${res_json.secret}&&rand=${Math.random(0,1)}`);
+          let gamestate_json = await gamestate.json();
+          gmState = gamestate_json;/*
+          console.log(gmState.players.length + " " + gmState.playerCount);
+          if (gmState.players.length === 1 && gmState.playerCount > 1) {
+            document.querySelector("#gamescreen").style.display = "none";
+            document.querySelector("#winscreen").style.display = "initial";
+            document.querySelector("#playerName").innerHTML = gmState.players[0].name;
+          }
+          */
+          console.log(gmState.responses + " " + gmState.players.length)
+          /*
+          if (gmState.responses === (gmState.players.length - 1) && gmState.playerCount > 1) {
+            newRound();
+          }*/
+          let playerList = document.querySelector("#playerList");
+          let responseLog = document.querySelector("#responses");
+          document.querySelector("#currentWord").textContent = gmState.currentWord;
+          let m1 = document.querySelector("#m1");
+          let m2 = document.querySelector("#m2");
+          m1.innerHTML = gmState.mutation[0];
+          m2.innerHTML = gmState.mutation[1];
+          playerList.innerHTML = "";
+          gmState.players.forEach((x) => {
+            if (x.name !== undefined) {
+              let li = document.createElement("li");
+              li.appendChild(document.createTextNode(x.name));
+              playerList.appendChild(li);
+            }
+          })
+          responseLog.innerHTML = "";
+          gmState.response_log.forEach((x) => {
+            let li = document.createElement("li");
+            console.log(x);
+            li.appendChild(document.createTextNode(`${x.player.name} survived!`));
+            responseLog.appendChild(li);
+          });
+        }, 1000)
+        let timer_el = document.querySelector("#timer");
+        async function newRound() {
+          timer = 20;
+          let interval = setInterval(() => {
+            timer_el.innerHTML = timer;
+            timer--;
+            if (timer === -1) {
+              rounds++;
+              newRound();
+              clearInterval(interval)
+            }
+          }, 1000)
+          let x = await fetch(`./nextRound?gameid=${res_json.id}&secret=${res_json.secret}&rounds=${rounds}`);
+          let y = await x.json();
+        }
+        document.querySelector("#creategame").style.display = "none";
+        document.querySelector("#queuescreen").style
+          .display = "block";
+        document.querySelector("#id").textContent = res_json.id;
+        document.querySelector(
+          "#start").addEventListener("click", async function (e) {
+          newRound();
+          document.querySelector("#queuescreen").style.display = "none";
+          document.querySelector("#gamescreen").style.display = "block";
+
+          let test = await fetch(`./gameStart?gameid=${res_json.id}&secret=${res_json.secret}`);
+          let test_json = await test.json();
+        });
+      })
+    </script>
+</body>
+
+
+
+</html>
